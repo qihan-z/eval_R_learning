@@ -43,7 +43,6 @@ output:
 ```
 
 ```{r func}
-------------------------------------------------------------------------------------------------------------
 ## TODO: 
 # str_parsing, remove any line that starts with ###
 # replace NAs with 0 (modelling, don't want it to be dropped)
@@ -52,7 +51,6 @@ output:
 # Check on accuracy of read_rfiles (how well they classify each line)
 # Manually check the scripts & classification, do I arrive at similar classification distribution
 # code review after make sure it works for R scripts & rmd
-------------------------------------------------------------------------------------------------------------
 library(tidycode)
 library(matahari)
 library(tidyverse)
@@ -131,6 +129,52 @@ View(tes)
 ##  make 2 rmd files (based on R scripts), write a version of function for rmd
 ## if (rmd) else R scripts
 ## if tidycode does not work: parsermd, knitr::purl() (may also have a function that strips rmd texts, but keeps the R scripts )
+```
+
+```{r fill-table}
+fill_na <- function(df) {
+  new.df <- df %>%
+    dplyr::mutate(dplyr::across(everything(), .fns = ~ replace_na(., 0)))
+  new.df
+}
+
+CREATE_ROW_VAL <- function(howManny) {
+  rand.val <- runif(howManny, min = 1, max = 10)
+  total <- sum(rand.val)
+  rand.val / total
+}
+
+DF_GENERATOR <- function(want.nrow, df) {
+  col.count <- dim(df)[2] - 1
+  row.count <- dim(df)[1]
+  dif <- want.nrow - row.count
+  col.names <- names(df)
+
+  for (row in 1:dif) {
+    new.val <- CREATE_ROW_VAL(col.count)
+    new.row <- data.frame(
+      "data" = paste0("team", "-", row + row.count),
+      "communication" = new.val[1],
+      "setup" = new.val[2],
+      "import" = new.val[3],
+      "visualization" = new.val[4],
+      "data_cleaning" = new.val[5],
+      "modeling" = new.val[6],
+      "exploratory" = new.val[7],
+      "evaluation" = new.val[8]
+    )
+    df <- rbind(df, new.row)
+  }
+  to.be.returned <- df %>%
+    dplyr::mutate(dplyr::across(where(~ is.numeric(.)), .fns = ~ round(., 2)))
+  to.be.returned
+}
+
+
+new.tes <- DF_GENERATOR(100, tes)
+
+new.tes
+
 ```
 
 
