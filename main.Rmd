@@ -1,0 +1,136 @@
+---
+title: "ExperientCode"
+author: "QiHan Zhao"
+date: "2/7/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+# read from txt file
+#projectFile <- readr::read_lines(
+#  "/Users/qihanzhao/Desktop/IndependentStudyMaterial/team1Copy.txt",
+#  progress=show_progress()
+# )
+
+#read from R file
+# the read_rfiles does not understanding anything except R code (so any code)
+# annotation will raise an error
+#df <- read_rfiles("./Data/team-2.R")
+#df
+#View(df)
+
+#functions<- unnest_calls(df, expr)
+
+#functions%>%
+#  unnest_wider(args)
+
+#functions%>%
+#  anti_join(get_stopfuncs())%>%
+#  inner_join(get_classifications(include_duplicates=FALSE))%>%
+#  count(func, classification, sort=TRUE)%>%
+#  ungroup()%>%
+#  ggplot(aes(func, n, fill=classification))+
+#  geom_col(show.legend=FALSE)+
+#  facet_wrap(~classification, scales="free_y")+
+#  coord_flip()
+  #to merge in only the most prevalent classification set include_duplicates = FALSE
+  #in get_classifications
+  
+  ## use anti_join(get_stopfuncs()), where you passed in functions to ignore
+  ## such as the <- operator 
+
+```
+
+```{r func}
+------------------------------------------------------------------------------------------------------------
+## TODO: 
+# str_parsing, remove any line that starts with ###
+# replace NAs with 0 (modelling, don't want it to be dropped)
+# Create Git repo, share with Dr Mine Cetinkaya-Rundel
+# Write function to randomly generate rows, to test for visualization, summary statistics, any modelling? 
+# Check on accuracy of read_rfiles (how well they classify each line)
+# Manually check the scripts & classification, do I arrive at similar classification distribution
+# code review after make sure it works for R scripts & rmd
+------------------------------------------------------------------------------------------------------------
+library(tidycode)
+library(matahari)
+library(tidyverse)
+
+# create wide data frame, each dataset is a row, followed by percentage of each 
+# classification tag. 
+setup_df <- function(dir.name, file.name){
+  path <- paste(dir.name, file.name, sep = "/")
+  df <- tidycode::read_rfiles(path)
+  classified.df <- tidycode::unnest_calls(df, expr)
+  classified.df
+}
+
+
+classification_percentage <- function(file.name) {
+  df <- setup_df(file.path("Data"), file.name)
+  tidy.row <- df %>%
+    dplyr::anti_join(tidycode::get_stopfuncs()) %>%
+    dplyr::inner_join(tidycode::get_classifications(include_duplicates = FALSE)) %>%
+    dplyr::select(c(func, lexicon, classification)) %>%
+    dplyr::filter(lexicon == "crowdsource") %>%
+    dplyr::group_by(classification) %>%
+    dplyr::mutate(percentage = round(n() / nrow(.), 2)) %>%
+    dplyr::distinct(classification, percentage) %>%
+    dplyr::mutate(data = file.name) %>%
+    tidyr::pivot_wider(
+      id_cols = data,
+      names_from = classification,
+      values_from = percentage
+    ) %>%
+  janitor::clean_names()
+  
+  tidy.row
+}
+
+CREATE_DATAFRAME <- function() {
+  file.names <- list.files(
+    path = "./Data",
+    pattern = "*.R"
+  )
+
+  read.in.df <- lapply(file.names, function(x) {
+    classification_percentage(x)
+  })
+  data.table::rbindlist(read.in.df, fill = TRUE)
+}
+
+tes <- CREATE_DATAFRAME()
+View(tes)
+
+  
+  
+#test.df <- functions %>%
+#  anti_join(get_stopfuncs()) %>%
+#  inner_join(get_classifications(include_duplicates = FALSE)) %>%
+#  select(c(func, lexicon, classification)) %>%
+#  filter(lexicon == "crowdsource") %>%
+#  group_by(classification) %>%
+#  mutate(perc = round(n() / nrow(.), 2)) %>%
+#  distinct(classification, perc) %>%
+#  mutate(data = "001") %>%
+#  pivot_wider(
+#    id_cols = data,
+#    names_from = classification,
+#    values_from = perc
+#  ) %>%
+#  mutate(Tidyverse = 1) 
+
+#names(test.df) <- gsub(" ", "_", names(test.df))
+
+# test.df
+# renaming variables names that have space in it: rename_with(), str_replace()
+# package: janitor:: clean_names()
+# ultimate goal: give a folder path, (R scripts & rmd file)
+##  package: fs::dir_ls()
+##  make 2 rmd files (based on R scripts), write a version of function for rmd
+## if (rmd) else R scripts
+## if tidycode does not work: parsermd, knitr::purl() (may also have a function that strips rmd texts, but keeps the R scripts )
+```
+
+
